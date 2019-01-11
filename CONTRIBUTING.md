@@ -12,7 +12,6 @@ Thank you for wanting to get involved in GitHub Repositories Archiver! The goal 
 
 - [Core concepts](#core-concepts)
   - [Folder structure](#folder-structure)
-  - [Adding a template](#adding-a-template)
 - [Requirements](#requirements)
 - [Conventions](#conventions)
   - [Commits](#commits)
@@ -20,7 +19,6 @@ Thank you for wanting to get involved in GitHub Repositories Archiver! The goal 
   - [Filing issues](#filing-issues)
   - [Contributing to the code](#contributing-to-the-code)
   - [Releasing](#releasing)
-  - [Updating templates on CodeSandbox](#updating-templates-on-codesandbox)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
