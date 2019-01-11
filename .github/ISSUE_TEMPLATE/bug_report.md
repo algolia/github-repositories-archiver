@@ -26,4 +26,3 @@ about: Did something not work?
 ## Environment
 
  - OS: name / version
- - Create InstantSearch App version:

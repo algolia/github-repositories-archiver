@@ -3,236 +3,218 @@ const path = require('path');
 const process = require('process');
 const program = require('commander');
 const inquirer = require('inquirer');
+inquirer.registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 const chalk = require('chalk');
 const latestSemver = require('latest-semver');
+const ghauth = require('ghauth');
+const GitHub = require('github-api');
+const fuzzy = require('fuzzy');
+const moment = require('moment');
 
-const createInstantSearchApp = require('../api');
-const {
-  checkAppPath,
-  checkAppName,
-  getAppTemplateConfig,
-  fetchLibraryVersions,
-  getTemplatesByCategory,
-  getTemplatePath,
-} = require('../utils');
-const getOptionsFromArguments = require('./getOptionsFromArguments');
-const getAttributesFromIndex = require('./getAttributesFromIndex');
-const isQuestionAsked = require('./isQuestionAsked');
-const getConfiguration = require('./getConfiguration');
+const githubRepositoriesArchiver = require('./githubRepositoriesArchiver');
 const { version } = require('../../package.json');
 
-let appPath;
+const OPTIONS = {
+  path: {
+    validate(input) {
+      return true; // FIXME
+    },
+  },
+  organization: {
+    validate(input) {
+      return true; // FIXME
+    }
+  },
+  minMonths: {
+    validate(input) {
+      return true; // FIXME
+    }
+  },
+  onlyPrivate: {
+    validate(input) {
+      return true; // FIXME
+    }
+  },
+  repositories: {
+    validate(input) {
+      return true; // FIXME
+    }
+  },
+  dryRun: {
+    validate(input) {
+      return input === true || input === false;
+    },
+  },
+};
+
+function checkConfig(config) {
+  Object.keys(config).forEach(optionName => {
+    if (!OPTIONS[optionName]) {
+      throw new Error(`The option \`${optionName}\` is unknown.`);
+    }
+
+    const isOptionValid = OPTIONS[optionName].validate(config[optionName]);
+
+    if (!isOptionValid) {
+      const errorMessage = OPTIONS[optionName].getErrorMessage
+        ? OPTIONS[optionName].getErrorMessage(config[optionName])
+        : `The option \`${optionName}\` is required.`;
+
+      throw new Error(errorMessage);
+    }
+  });
+}
+
+let archivePath;
 let options = {};
 
 program
   .version(version, '-v, --version')
-  .arguments('<project-directory>')
-  .usage(`${chalk.green('<project-directory>')} [options]`)
-  .option('--name <name>', 'The name of the application')
-  .option('--app-id <appId>', 'The application ID')
-  .option('--api-key <apiKey>', 'The Algolia search API key')
-  .option('--index-name <indexName>', 'The main index of your search')
-  .option(
-    '--attributes-to-display <attributesToDisplay>',
-    'The attributes of your index to display'
-  )
-  .option(
-    '--attributes-for-faceting <attributesForFaceting>',
-    'The attributes for faceting'
-  )
-  .option('--template <template>', 'The InstantSearch template to use')
-  .option('--library-version <template>', 'The version of the library')
-  .option('--config <config>', 'The configuration file to get the options from')
-  .option('--no-installation', 'Ignore dependency installation')
+  .arguments('<archive-directory>')
+  .usage(`${chalk.green('<archive-directory>')} [options]`)
+  .option('--dry-run', 'do not delete nor push repositories')
+  .option('--only-private', 'only consider private repositories')
+  .option('--organization <org>', 'the organization to restrict to')
+  .option('--min-months <n>', 'the minimum number of months since a repository was updated. Others will be hidden from the list')
   .action((dest, opts) => {
-    appPath = dest;
+    archivePath = dest;
     options = opts;
   })
   .parse(process.argv);
 
-if (!appPath) {
-  console.log('Please specify the project directory:');
+if (!archivePath) {
+  console.log('Please specify the archive directory:');
   console.log();
   console.log(
-    `  ${chalk.cyan('create-instantsearch-app')} ${chalk.green(
-      '<project-directory>'
+    `  ${chalk.cyan('github-repositories-archiver')} ${chalk.green(
+      '<archive-directory>'
     )}`
   );
   console.log();
   console.log('For example:');
   console.log(
-    `  ${chalk.cyan('create-instantsearch-app')} ${chalk.green(
-      'my-instantsearch-app'
+    `  ${chalk.cyan('github-repositories-archiver')} ${chalk.green(
+      '~/dev/archive'
     )}`
   );
   console.log();
   console.log(
-    `Run ${chalk.cyan('create-instantsearch-app --help')} to see all options.`
+    `Run ${chalk.cyan('github-repositories-archiver --help')} to see all options.`
   );
 
   process.exit(1);
 }
 
-const optionsFromArguments = getOptionsFromArguments(options.rawArgs);
-const appName = optionsFromArguments.name || path.basename(appPath);
-const attributesToDisplay = (optionsFromArguments.attributesToDisplay || '')
-  .split(',')
-  .filter(Boolean)
-  .map(x => x.trim());
-
-try {
-  checkAppPath(appPath);
-  checkAppName(appName);
-} catch (err) {
-  console.error(err.message);
-  console.log();
-
+if (options.rawArgs.indexOf('--help') > -1 || options.rawArgs.indexOf('-h') > -1) {
+  program.help();
   process.exit(1);
 }
 
-const questions = [
-  {
-    type: 'list',
-    pageSize: 10,
-    name: 'template',
-    message: 'InstantSearch template',
-    choices: () => {
-      const templatesByCategory = getTemplatesByCategory();
+const authOptions = {
+  configName: 'github-repositories-archiver',
+  note: 'This token is used for github-repositories-archiver.',
+  scopes: ['user', 'repo']
+};
 
-      return Object.entries(templatesByCategory).reduce(
-        (templates, [category, values]) => [
-          ...templates,
-          new inquirer.Separator(category),
-          ...values,
-        ],
-        []
-      );
-    },
-    validate(input) {
-      return Boolean(input);
-    },
-  },
-  {
-    type: 'list',
-    name: 'libraryVersion',
-    message: answers => `${answers.template} version`,
-    choices: async answers => {
-      const templatePath = getTemplatePath(answers.template);
-      const templateConfig = getAppTemplateConfig(templatePath);
-      const { libraryName } = templateConfig;
+new Promise((resolve, reject) => {
+  ghauth(authOptions, (err, authData) => {
+    if (err) {
+      reject(err);
+    }
+    resolve(authData);
+  });
+}).then((authData) => {
+  console.log(`🔑  ${chalk.green('Connected')} as ${chalk.cyan(authData.user)}.`);
 
-      try {
-        const versions = await fetchLibraryVersions(libraryName);
-        const latestStableVersion = latestSemver(versions);
+  const gh = new GitHub({
+    username: authData.user,
+    token: authData.token
+  });
 
-        if (!latestStableVersion) {
-          return versions;
+  function sortRepositoriesByDate(repositories) {
+    return repositories.sort((a, b) => a.value.updated_at < b.value.updated_at ? -1 : (a.updated_at > b.updated_at ? 1 : 0));
+  }
+
+  async function run() {
+    console.log(`🚜  Archiving repositories to ${chalk.cyan(archivePath)}.`);
+
+    const config = {
+      organization: options.organization,
+      minMonths: +options.minMonths || 0,
+      dryRun: options.dryRun === true,
+      onlyPrivate: options.onlyPrivate === true,
+      path: archivePath ? path.resolve(archivePath) : '',
+    };
+
+    checkConfig(config);
+
+    config.gh = gh;
+
+    console.log(`⏬  Loading ${chalk.bold(config.organization || authData.user)}'s GitHub repositories...`);
+    const repositories = (await (config.organization !== undefined ? gh.getOrganization(config.organization).getRepos() : gh.getUser().listRepos())).data.
+      reduce((results, e) => {
+        if (config.onlyPrivate && !e.private) {
+          return results;
         }
+        const numberOfMonthsSinceUpdated = moment.duration(moment().diff(moment(e.updated_at))).asMonths();
+        if (numberOfMonthsSinceUpdated < config.minMonths) {
+          return results;
+        }
+        const emojis = numberOfMonthsSinceUpdated < 12 ? '' :
+          numberOfMonthsSinceUpdated < 18 ? ' 😅' :
+          numberOfMonthsSinceUpdated < 24 ? ' 😅😅' : ' 😅😅😅';
+        const lock = e.private ? ' 🔒' : '';
+        results[e.full_name] = {
+          name: `${e.full_name}${lock} (${chalk.bold(e.stargazers_count)} ⭐️, last updated ${chalk.bold(moment(e.updated_at).fromNow())}${emojis})`,
+          value: e,
+          short: e.full_name
+        };
+        return results;
+      }, {});
+    const repositoryNames = Object.keys(repositories);
 
-        return [
-          new inquirer.Separator('Latest stable version (recommended)'),
-          latestStableVersion,
-          new inquirer.Separator('All versions'),
-          ...versions,
-        ];
-      } catch (err) {
-        const fallbackLibraryVersion = '1.0.0';
-
-        console.log();
-        console.error(
-          chalk.red(
-            `Cannot fetch versions for library "${chalk.cyan(libraryName)}".`
-          )
-        );
-        console.log();
-        console.log(
-          `Fallback to ${chalk.cyan(
-            fallbackLibraryVersion
-          )}, please upgrade the dependency after generating the app.`
-        );
-        console.log();
-
-        return [
-          new inquirer.Separator('Available versions'),
-          fallbackLibraryVersion,
-        ];
-      }
-    },
-    when: answers => {
-      const templatePath = getTemplatePath(answers.template);
-      const templateConfig = getAppTemplateConfig(templatePath);
-
-      return Boolean(templateConfig.libraryName);
-    },
-  },
-  {
-    type: 'input',
-    name: 'appId',
-    message: 'Application ID',
-    default: 'latency',
-  },
-  {
-    type: 'input',
-    name: 'apiKey',
-    message: 'Search API key',
-    default: '6be0576ff61c053d5f9a3225e2a90f76',
-  },
-  {
-    type: 'input',
-    name: 'indexName',
-    message: 'Index name',
-    default: 'instant_search',
-  },
-  {
-    type: 'checkbox',
-    name: 'attributesToDisplay',
-    message: 'Attributes to display',
-    suffix: `\n  ${chalk.gray('Used to generate the default result template')}`,
-    pageSize: 10,
-    choices: async answers => [
+    const questions = [
       {
-        name: 'None',
-        value: undefined,
+        type: 'checkbox-plus',
+        name: 'repositories',
+        message: 'Select GitHub repositories to archive (use <SPACE> to select, <UP> & <DOWN> to navigate, type to search)',
+        pageSize: 25,
+        highlight: true,
+        searchable: true,
+        source: (answersSoFar, input) => {
+          input = input || '';
+          return new Promise(function(resolve) {
+            const matchingNames = fuzzy.filter(input, repositoryNames).map(e => e.original);
+            let matchingRepositories = [];
+            resolve(sortRepositoriesByDate(matchingNames.reduce((results, name) => {
+              results.push(repositories[name]);
+              return results;
+            }, [])));
+          });
+        },
+        validate(input) {
+          return Boolean(input);
+        },
       },
-      new inquirer.Separator(),
-      new inquirer.Separator('From your index'),
-      ...(await getAttributesFromIndex(answers)),
-    ],
-    filter: attributes => attributes.filter(Boolean),
-    when: ({ appId, apiKey, indexName }) =>
-      !attributesToDisplay.length > 0 && appId && apiKey && indexName,
-  },
-].filter(question => isQuestionAsked({ question, args: optionsFromArguments }));
+    ];
 
-async function run() {
+    console.log();
+    const answers = await inquirer.prompt(questions);
+    console.log();
+    config.repositories = answers.repositories;
+
+    await githubRepositoriesArchiver(archivePath, config);
+  }
+
+  run().catch(err => {
+    console.error(err);
+    console.log();
+    process.exit(2);
+  });
+}).catch(err => {
+  console.error(err);
   console.log();
-  console.log(`Creating a new InstantSearch app in ${chalk.green(appPath)}.`);
-  console.log();
-
-  const config = {
-    ...(await getConfiguration({
-      options: {
-        ...optionsFromArguments,
-        name: appName,
-        attributesToDisplay,
-      },
-      answers: await inquirer.prompt(questions),
-    })),
-    installation: program.installation,
-  };
-
-  const templatePath = getTemplatePath(config.template);
-  const { tasks } = getAppTemplateConfig(templatePath);
-  const app = createInstantSearchApp(appPath, config, tasks);
-
-  await app.create();
-}
-
-run().catch(err => {
-  console.error(err.message);
-  console.log();
-
-  process.exit(2);
+  process.exit(1);
 });
 
 process.on('SIGINT', () => {

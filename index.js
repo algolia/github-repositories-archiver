@@ -1,3 +1,3 @@
-const createInstantSearchApp = require('./src/api');
+const githubRepositoriesArchiver = require('./src/cli');
 
-module.exports = createInstantSearchApp;
+module.exports = githubRepositoriesArchiver;
