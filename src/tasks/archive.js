@@ -2,7 +2,7 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const chalk = require('chalk');
 
-module.exports = async function archive(config) {
+async function archive(config) {
   if (config.repositories.length < 1) {
     console.log(`✨  Nothing to archive.`);
     return;
@@ -34,4 +34,6 @@ module.exports = async function archive(config) {
   } catch (e) {
     console.error(e);
   }
-};
+}
+
+module.exports = archive;
