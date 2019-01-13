@@ -1,28 +1,28 @@
 const OPTIONS = {
   path: {
     validate(input) {
-      return true; // FIXME
+      return input || true; // FIXME
     },
   },
   organization: {
     validate(input) {
-      return true; // FIXME
-    }
+      return input || true; // FIXME
+    },
   },
   minMonths: {
     validate(input) {
-      return true; // FIXME
-    }
+      return input || true; // FIXME
+    },
   },
   onlyPrivate: {
     validate(input) {
-      return true; // FIXME
-    }
+      return input || true; // FIXME
+    },
   },
   repositories: {
     validate(input) {
-      return true; // FIXME
-    }
+      return input || true; // FIXME
+    },
   },
   dryRun: {
     validate(input) {
