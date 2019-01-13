@@ -50,6 +50,7 @@
     "metalsmith-in-place": "4.2.0",
     "metalsmith-rename": "1.0.0",
     "moment": "^2.23.0",
+    "ora": "^3.0.0",
     "validate-npm-package-name": "3.0.0"
   },
   "devDependencies": {

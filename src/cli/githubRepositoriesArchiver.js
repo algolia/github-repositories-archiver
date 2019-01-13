@@ -6,6 +6,7 @@ const fuzzy = require('fuzzy');
 const moment = require('moment');
 const inquirer = require('inquirer');
 inquirer.registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
+const ora = require('ora');
 
 const checkConfig = require('./checkConfig');
 const archive = require('../tasks/archive');
@@ -51,7 +52,7 @@ function githubRepositoriesArchiver(archivePath, options) {
 
       config.gh = gh;
 
-      console.log(`⏬  Loading ${chalk.bold(config.organization || authData.user)}'s GitHub repositories...`);
+      const spinner = ora(`  Loading ${chalk.bold(config.organization || authData.user)}'s GitHub repositories...`).start();
       const repositories = (await (config.organization !== undefined ? gh.getOrganization(config.organization).getRepos() : gh.getUser().listRepos())).data.
         reduce((results, e) => {
           if (config.onlyPrivate && !e.private) {
@@ -73,6 +74,7 @@ function githubRepositoriesArchiver(archivePath, options) {
           return results;
         }, {});
       const repositoryNames = Object.keys(repositories);
+      spinner.succeed(`  Loaded ${chalk.bold(repositoryNames.length)} repositories.`);
 
       const questions = [
         {
