@@ -7,6 +7,7 @@ const moment = require('moment');
 const inquirer = require('inquirer');
 inquirer.registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 const ora = require('ora');
+const cfg = require('application-config');
 
 const checkConfig = require('./checkConfig');
 const archive = require('../tasks/archive');
@@ -19,13 +20,29 @@ const authOptions = {
 
 function githubRepositoriesArchiver(archivePath, options) {
   new Promise((resolve, reject) => {
-    ghauth(authOptions, (err, authData) => {
-      if (err) {
-        reject(err);
-      }
-      resolve(authData);
-    });
+    if (options.login === true) {
+      // login forced, removing the configuration
+      cfg(authOptions['configName']).trash(err => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    } else {
+      resolve();
+    }
   })
+    .then(() => {
+      return new Promise((resolve, reject) => {
+        ghauth(authOptions, (err, authData) => {
+          if (err) {
+            reject(err);
+          }
+          resolve(authData);
+        });
+      });
+    })
     .then(authData => {
       console.log(`🔑  ${chalk.green('Connected')} as ${chalk.cyan(authData.user)}.`);
 
@@ -36,7 +53,7 @@ function githubRepositoriesArchiver(archivePath, options) {
 
       function sortRepositoriesByDate(repositories) {
         return repositories.sort((a, b) =>
-          a.value.updated_at < b.value.updated_at ? -1 : a.updated_at > b.updated_at ? 1 : 0
+          a.value.updated_at < b.value.updated_at ? -1 : a.value.updated_at > b.value.updated_at ? 1 : 0
         );
       }
 

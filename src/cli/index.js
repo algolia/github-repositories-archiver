@@ -19,6 +19,7 @@ program
   .arguments('<archive-directory>')
   .usage(`${chalk.green('<archive-directory>')} [options]`)
   .option('--dry-run', 'do not delete nor push repositories')
+  .option('--login', 'force login to happen again')
   .option('--only-private', 'only consider private repositories')
   .option('--organization <org>', 'the organization to restrict to')
   .option(

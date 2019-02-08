@@ -9,6 +9,11 @@ const OPTIONS = {
       return input || true; // FIXME
     },
   },
+  login: {
+    validate(input) {
+      return input === true || input === false;
+    },
+  },
   minMonths: {
     validate(input) {
       return input || true; // FIXME
