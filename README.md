@@ -30,6 +30,10 @@
 
 ```
 npx github-repositories-archiver /tmp/archives
+# or
+npm install -g github-repositories-archiver
+github-repositories-archiver /tmp/archives
+
 cd /tmp/archives
 git push
 ```
@@ -46,6 +50,7 @@ Usage: github-repositories-archiver <archive-directory> [options]
 Options:
   -v, --version         output the version number
   --dry-run             do not delete nor push repositories
+  --login               force login to happen again
   --only-private        only consider private repositories
   --organization <org>  the organization to restrict to
   --min-months <n>      the minimum number of months since a repository was updated. Others will be hidden from the list
