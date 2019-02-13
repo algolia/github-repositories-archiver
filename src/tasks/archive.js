@@ -2,7 +2,9 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const chalk = require('chalk');
 
-async function archive(config) {
+const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+
+function archive(config) {
   if (config.repositories.length < 1) {
     console.log(`✨  Nothing to archive.`);
     return;
@@ -13,31 +15,31 @@ async function archive(config) {
 
   const x = function(...args) {
     console.log('[EXEC]  ', ...args);
-    exec(...args);
+    return exec(...args);
   };
 
-  try {
-    await x(`mkdir -p "${config.path}"`);
-    await x(`cd "${config.path}" && test -d .git || git init . && git commit --allow-empty -m "Initial commit"`);
-    for (const repo of config.repositories) {
-      await x(
-        `cd "${config.path}" && test -d "${repo.name}" || git subtree add -P "${repo.name}" "${repo.ssh_url}" ${
-          repo.default_branch
-        }`
-      );
+  let chain = x(`mkdir -p "${config.path}"`);
+  chain = chain.then(() => x(`cd "${config.path}" && (test -d .git || (git init . && git commit --allow-empty -m "Initial commit"))`));
+  for (const repo of config.repositories) {
+    chain = chain.then(() => x(
+      `cd "${config.path}" && (test -d "${repo.name}" || git subtree add -P "${repo.name}" "${repo.ssh_url}" ${
+        repo.default_branch
+      })`
+    )).then(() => {
       if (config.dryRun) {
         console.log(`[DRYRUN] deleting ${repo.owner.login}/${repo.name}`);
+        return Promise.resolve();
       } else {
         console.log(`[EXEC]   deleting ${repo.owner.login}/${repo.name}`);
-        // const ghRepo = config.gh.getRepo(repo.owner.login, repo.name);
-        // await ghRepo.deleteRepo();
+        const ghRepo = config.gh.getRepo(repo.owner.login, repo.name);
+        return ghRepo.deleteRepo();
       }
-    }
+    });
+  }
+  chain.then(() => {
     console.log();
     console.log(`✨  Done.`);
-  } catch (e) {
-    console.error(e);
-  }
+  }).catch((e) => console.error(e));
 }
 
 module.exports = archive;

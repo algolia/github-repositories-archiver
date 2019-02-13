@@ -15,7 +15,7 @@ const archive = require('../tasks/archive');
 const authOptions = {
   configName: 'github-repositories-archiver',
   note: 'This token is used for github-repositories-archiver.',
-  scopes: ['user', 'repo'],
+  scopes: ['user', 'repo', 'delete_repo'],
 };
 
 function githubRepositoriesArchiver(archivePath, options) {
@@ -140,7 +140,7 @@ function githubRepositoriesArchiver(archivePath, options) {
         console.log();
         config.repositories = answers.repositories;
 
-        await archive(config);
+        archive(config);
       }
 
       run().catch(err => {
