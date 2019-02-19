@@ -24,21 +24,63 @@
 
 </details>
 
-## Get started
-
 > The tool requires Node ≥ 8.
 
-```
-npx github-repositories-archiver /tmp/archives
-# or
-npm install -g github-repositories-archiver
-github-repositories-archiver /tmp/archives
+## Get started
 
-cd /tmp/archives
-git push
+#### Install the CLI using
+
+```sh
+$ npm install -g github-repositories-archiver
 ```
+
+#### Run the CLI
+
+```sh
+$ github-repositories-archiver /path/to/archives
+```
+
+Or if you want to run it directly with [npx](https://github.com/zkat/npx) use:
 
 > [`npx`](https://medium.com/@maybekatz/introducing-npx-an-npm-package-runner-55f7d4bd282b) is a tool introduced in `npm@5.2.0` that makes it possible to run CLI tools hosted on the npm registry.
+
+
+```sh
+$ npx github-repositories-archiver /path/to/archives
+```
+
+Or if you want to run it from the source:
+
+```sh
+$ yarn
+$ yarn start -- /path/to/archives
+```
+
+#### Login with your GitHub account
+
+```sh
+$ github-repositories-archiver /path/to/archives
+Your GitHub username: redox
+Your GitHub password: ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
+🔑  Connected as redox.
+```
+
+#### Select the repositories you want to archive
+
+```sh
+? Select GitHub repositories to archive (use <SPACE> to select, <UP> & <DOWN> to navigate, type to search)
+❯◯ algolia/very-very-old 🔒 (1 ⭐️, last updated 4 years ago 😅😅😅)
+ ◯ algolia/very-old 🔒 (0 ⭐️, last updated 4 years ago 😅😅😅)
+ ◯ algolia/quite-old 🔒 (1 ⭐️, last updated 3 years ago 😅😅😅)
+ ◯ [...]
+```
+
+#### Push your changes to
+
+```sh
+$ cd /path/to/archives
+$ git push
+```
 
 ## Usage
 
@@ -55,6 +97,12 @@ Options:
   --organization <org>  the organization to restrict to
   --min-months <n>      the minimum number of months since a repository was updated. Others will be hidden from the list
   -h, --help            output usage information
+```
+
+## Example
+
+```sh
+yarn start -- ~/dev/algolia/archives --organization algolia --only-private --dry-run
 ```
 
 ## License
