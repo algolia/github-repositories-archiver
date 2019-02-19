@@ -75,7 +75,7 @@ Your GitHub password: ✔✔✔✔✔✔✔✔✔✔✔✔✔✔✔
  ◯ [...]
 ```
 
-#### Push your changes to
+#### Push your changes
 
 ```sh
 $ cd /path/to/archives
