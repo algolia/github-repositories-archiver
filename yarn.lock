@@ -264,7 +264,7 @@ application-config-path@^0.1.0:
   resolved "https://registry.yarnpkg.com/application-config-path/-/application-config-path-0.1.0.tgz#193c5f0a86541a4c66fba1e2dc38583362ea5e8f"
   integrity sha1-GTxfCoZUGkxm+6Hi3DhYM2LqXo8=
 
-application-config@~1.0.0:
+application-config@^1.0.1, application-config@~1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/application-config/-/application-config-1.0.1.tgz#5aa2e2a5ed6abd2e5d1d473d3596f574044fe9e7"
   integrity sha1-WqLipe1qvS5dHUc9NZb1dARP6ec=

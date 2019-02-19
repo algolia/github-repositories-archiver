@@ -53,7 +53,7 @@ Or if you want to run it from the source:
 
 ```sh
 $ yarn
-$ yarn start -- /path/to/archives
+$ yarn start /path/to/archives
 ```
 
 #### Login with your GitHub account

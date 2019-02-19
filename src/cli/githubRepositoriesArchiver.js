@@ -22,7 +22,7 @@ function githubRepositoriesArchiver(archivePath, options) {
   new Promise((resolve, reject) => {
     if (options.login === true) {
       // login forced, removing the configuration
-      cfg(authOptions['configName']).trash(err => {
+      cfg(authOptions.configName).trash(err => {
         if (err) {
           reject(err);
         } else {
@@ -33,16 +33,17 @@ function githubRepositoriesArchiver(archivePath, options) {
       resolve();
     }
   })
-    .then(() => {
-      return new Promise((resolve, reject) => {
-        ghauth(authOptions, (err, authData) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(authData);
-        });
-      });
-    })
+    .then(
+      () =>
+        new Promise((resolve, reject) => {
+          ghauth(authOptions, (err, authData) => {
+            if (err) {
+              reject(err);
+            }
+            resolve(authData);
+          });
+        })
+    )
     .then(authData => {
       console.log(`🔑  ${chalk.green('Connected')} as ${chalk.cyan(authData.user)}.`);
 

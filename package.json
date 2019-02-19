@@ -34,6 +34,7 @@
     "node": ">= 8"
   },
   "dependencies": {
+    "application-config": "^1.0.1",
     "chalk": "2.4.1",
     "commander": "2.19.0",
     "fuzzy": "^0.1.3",

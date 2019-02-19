@@ -16,6 +16,7 @@ const OPTIONS = {
 
       // read/write access
       try {
+        // eslint-disable-next-line no-bitwise
         fs.accessSync(input, fs.constants.R_OK | fs.constants.W_OK);
       } catch (err) {
         return `The path ${input} is either not readable or not writable.`;
