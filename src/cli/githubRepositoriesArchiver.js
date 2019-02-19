@@ -33,14 +33,17 @@ function githubRepositoriesArchiver(archivePath, options) {
       resolve();
     }
   })
-    .then(() => new Promise((resolve, reject) => {
-        ghauth(authOptions, (err, authData) => {
-          if (err) {
-            reject(err);
-          }
-          resolve(authData);
-        });
-      }))
+    .then(
+      () =>
+        new Promise((resolve, reject) => {
+          ghauth(authOptions, (err, authData) => {
+            if (err) {
+              reject(err);
+            }
+            resolve(authData);
+          });
+        })
+    )
     .then(authData => {
       console.log(`🔑  ${chalk.green('Connected')} as ${chalk.cyan(authData.user)}.`);
 
