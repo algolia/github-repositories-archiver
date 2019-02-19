@@ -2,8 +2,6 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const chalk = require('chalk');
 
-const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-
 function archive(config) {
   if (config.repositories.length < 1) {
     console.log(`✨  Nothing to archive.`);
