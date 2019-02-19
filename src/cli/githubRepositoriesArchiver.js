@@ -79,6 +79,9 @@ function githubRepositoriesArchiver(archivePath, options) {
         const repositories = (await (config.organization !== undefined
           ? gh.getOrganization(config.organization).getRepos()
           : gh.getUser().listRepos())).data.reduce((results, e) => {
+          if (e.permissions.admin === false) {
+            return results;
+          }
           if (config.onlyPrivate && !e.private) {
             return results;
           }
