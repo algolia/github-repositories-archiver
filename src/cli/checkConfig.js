@@ -42,6 +42,11 @@ const OPTIONS = {
       return input || true; // FIXME
     },
   },
+  onlyAdmin: {
+    validate(input) {
+      return input || true; // FIXME
+    },
+  },
   onlyPrivate: {
     validate(input) {
       return input || true; // FIXME

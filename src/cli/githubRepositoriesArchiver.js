@@ -65,6 +65,7 @@ function githubRepositoriesArchiver(archivePath, options) {
           organization: options.organization,
           minMonths: Number(options.minMonths) || 0,
           dryRun: options.dryRun === true,
+          onlyAdmin: options.onlyAdmin === true,
           onlyPrivate: options.onlyPrivate === true,
           path: archivePath ? path.resolve(archivePath) : '',
         };
@@ -79,7 +80,7 @@ function githubRepositoriesArchiver(archivePath, options) {
         const repositories = (await (config.organization !== undefined
           ? gh.getOrganization(config.organization).getRepos()
           : gh.getUser().listRepos())).data.reduce((results, e) => {
-          if (e.permissions.admin === false) {
+          if (config.onlyAdmin && !e.permissions.admin) {
             return results;
           }
           if (config.onlyPrivate && !e.private) {
@@ -89,6 +90,10 @@ function githubRepositoriesArchiver(archivePath, options) {
           if (numberOfMonthsSinceUpdated < config.minMonths) {
             return results;
           }
+          const adminStatus = e.permissions.admin
+            ? `you are ${chalk.green('admin')}`
+            : `you are ${chalk.red('not admin')}`;
+
           const emojis =
             numberOfMonthsSinceUpdated < 12
               ? ''
@@ -101,7 +106,7 @@ function githubRepositoriesArchiver(archivePath, options) {
           results[e.full_name] = {
             name: `${e.full_name}${lock} (${chalk.bold(e.stargazers_count)} ⭐️, last updated ${chalk.bold(
               moment(e.updated_at).fromNow()
-            )}${emojis})`,
+            )}${emojis}) ${adminStatus}`,
             value: e,
             short: e.full_name,
           };
