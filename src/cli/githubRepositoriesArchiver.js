@@ -90,9 +90,6 @@ function githubRepositoriesArchiver(archivePath, options) {
           if (numberOfMonthsSinceUpdated < config.minMonths) {
             return results;
           }
-          const adminStatus = e.permissions.admin
-            ? `you are ${chalk.green('admin')}`
-            : `you are ${chalk.red('not admin')}`;
 
           const emojis =
             numberOfMonthsSinceUpdated < 12
@@ -106,7 +103,7 @@ function githubRepositoriesArchiver(archivePath, options) {
           results[e.full_name] = {
             name: `${e.full_name}${lock} (${chalk.bold(e.stargazers_count)} ⭐️, last updated ${chalk.bold(
               moment(e.updated_at).fromNow()
-            )}${emojis}) ${adminStatus}`,
+            )}${emojis}) ${e.permissions.admin ? '' : chalk.red(' non-deletable')}`,
             value: e,
             short: e.full_name,
           };
