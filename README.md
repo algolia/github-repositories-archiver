@@ -93,6 +93,7 @@ Options:
   -v, --version         output the version number
   --dry-run             do not delete nor push repositories
   --login               force login to happen again
+  --only-admin          only consider repositories you can delete
   --only-private        only consider private repositories
   --organization <org>  the organization to restrict to
   --min-months <n>      the minimum number of months since a repository was updated. Others will be hidden from the list
