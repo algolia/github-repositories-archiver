@@ -96,6 +96,7 @@ Options:
   --only-admin          only consider repositories you can delete
   --only-private        only consider private repositories
   --organization <org>  the organization to restrict to
+  --prefix              only consider repos with a specific prefix
   --min-months <n>      the minimum number of months since a repository was updated. Others will be hidden from the list
   -h, --help            output usage information
 ```

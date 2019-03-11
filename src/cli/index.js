@@ -22,6 +22,7 @@ program
   .option('--login', 'force login to happen again')
   .option('--only-admin', 'only consider repositories you can delete')
   .option('--only-private', 'only consider private repositories')
+  .option('--prefix <prefix>', 'only consider repos with a specific prefix')
   .option('--organization <org>', 'the organization to restrict to')
   .option(
     '--min-months <n>',

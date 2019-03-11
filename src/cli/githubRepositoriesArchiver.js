@@ -63,13 +63,13 @@ function githubRepositoriesArchiver(archivePath, options) {
 
         const config = {
           organization: options.organization,
+          prefix: options.prefix,
           minMonths: Number(options.minMonths) || 0,
           dryRun: options.dryRun === true,
           onlyAdmin: options.onlyAdmin === true,
           onlyPrivate: options.onlyPrivate === true,
           path: archivePath ? path.resolve(archivePath) : '',
         };
-
         checkConfig(config);
 
         config.gh = gh;
@@ -86,6 +86,11 @@ function githubRepositoriesArchiver(archivePath, options) {
           if (config.onlyPrivate && !e.private) {
             return results;
           }
+
+          if (config.prefix && !e.full_name.includes(`/${config.prefix}`)) {
+            return results;
+          }
+
           const numberOfMonthsSinceUpdated = moment.duration(moment().diff(moment(e.updated_at))).asMonths();
           if (numberOfMonthsSinceUpdated < config.minMonths) {
             return results;

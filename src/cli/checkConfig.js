@@ -52,6 +52,11 @@ const OPTIONS = {
       return input || true; // FIXME
     },
   },
+  prefix: {
+    validate(input) {
+      return input || true; // FIXME
+    },
+  },
   repositories: {
     validate(input) {
       return input || true; // FIXME
