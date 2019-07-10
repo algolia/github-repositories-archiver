@@ -2,10 +2,8 @@ const path = require('path');
 const chalk = require('chalk');
 const ghauth = require('ghauth');
 const GitHub = require('github-api');
-const fuzzy = require('fuzzy');
 const moment = require('moment');
 const inquirer = require('inquirer');
-inquirer.registerPrompt('checkbox-plus', require('inquirer-checkbox-plus-prompt'));
 const ora = require('ora');
 const cfg = require('application-config');
 
@@ -52,12 +50,6 @@ function githubRepositoriesArchiver(archivePath, options) {
         token: authData.token,
       });
 
-      function sortRepositoriesByDate(repositories) {
-        return repositories.sort((a, b) =>
-          a.value.updated_at < b.value.updated_at ? -1 : a.value.updated_at > b.value.updated_at ? 1 : 0
-        );
-      }
-
       async function run() {
         console.log(`🚜  Archiving repositories to ${chalk.cyan(archivePath)}.`);
 
@@ -67,6 +59,7 @@ function githubRepositoriesArchiver(archivePath, options) {
           dryRun: options.dryRun === true,
           onlyAdmin: options.onlyAdmin === true,
           onlyPrivate: options.onlyPrivate === true,
+          repositoriesInput: options.repositories ? options.repositories.split(',') : false,
           path: archivePath ? path.resolve(archivePath) : '',
         };
 
@@ -77,75 +70,51 @@ function githubRepositoriesArchiver(archivePath, options) {
         const spinner = ora(
           `  Loading ${chalk.bold(config.organization || authData.user)}'s GitHub repositories...`
         ).start();
+        
         const repositories = (await (config.organization !== undefined
           ? gh.getOrganization(config.organization).getRepos()
-          : gh.getUser().listRepos())).data.reduce((results, e) => {
+          : gh.getUser().listRepos())).data.filter(e => {
+          
+          if(config.repositoriesInput.length && !config.repositoriesInput.includes(e.name)){
+            return false;          
+          }
           if (config.onlyAdmin && !e.permissions.admin) {
-            return results;
+            return false;
           }
           if (config.onlyPrivate && !e.private) {
-            return results;
+            return false;
           }
           const numberOfMonthsSinceUpdated = moment.duration(moment().diff(moment(e.updated_at))).asMonths();
           if (numberOfMonthsSinceUpdated < config.minMonths) {
-            return results;
+            return false;
           }
-
-          const emojis =
-            numberOfMonthsSinceUpdated < 12
-              ? ''
-              : numberOfMonthsSinceUpdated < 18
-              ? ' 😅'
-              : numberOfMonthsSinceUpdated < 24
-              ? ' 😅😅'
-              : ' 😅😅😅';
-          const lock = e.private ? ' 🔒' : '';
-          results[e.full_name] = {
-            name: `${e.full_name}${lock} (${chalk.bold(e.stargazers_count)} ⭐️, last updated ${chalk.bold(
-              moment(e.updated_at).fromNow()
-            )}${emojis}) ${e.permissions.admin ? '' : chalk.red(' non-deletable')}`,
-            value: e,
-            short: e.full_name,
-          };
-          return results;
+          return true;
         }, {});
-        const repositoryNames = Object.keys(repositories);
-        spinner.succeed(`  Loaded ${chalk.bold(repositoryNames.length)} repositories.`);
 
+        const choices = JSON.parse(JSON.stringify(repositories)).map(e => {
+          const lock = e.private ? ' 🔒' : '';
+          e.name = `${e.full_name}${lock} (${chalk.bold(e.stargazers_count)} ⭐️, last updated ${chalk.bold(
+            moment(e.updated_at).fromNow()
+          )}) ${e.permissions.admin ? '' : chalk.red(' non-deletable')}`;
+          e.value = e.full_name;
+          return e;
+        });
+        
+        spinner.succeed(`  Loaded ${chalk.bold(choices.length)} repositories.`);
+        
         const questions = [
           {
-            type: 'checkbox-plus',
+            type: 'checkbox',
             name: 'repositories',
             message:
-              'Select GitHub repositories to archive (use <SPACE> to select, <UP> & <DOWN> to navigate, type to search)',
-            pageSize: 25,
-            highlight: true,
-            searchable: true,
-            source: (answersSoFar, input) => {
-              input = input || '';
-              return new Promise(resolve => {
-                const matchingNames = fuzzy.filter(input, repositoryNames).map(e => e.original);
-                resolve(
-                  sortRepositoriesByDate(
-                    matchingNames.reduce((results, name) => {
-                      results.push(repositories[name]);
-                      return results;
-                    }, [])
-                  )
-                );
-              });
-            },
-            validate(input) {
-              return Boolean(input);
-            },
+              `Select GitHub repositories to archive (Press ${chalk.cyan('<space>')} to select, ${chalk.cyan('<a>')} to toggle all, ${chalk.cyan('<i>')} to invert selection)`,
+    
+              choices
           },
         ];
 
-        console.log();
         const answers = await inquirer.prompt(questions);
-        console.log();
-        config.repositories = answers.repositories;
-
+        config.repositories = repositories.filter(e => answers.repositories.includes(e.full_name));
         archive(config);
       }
 

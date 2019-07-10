@@ -57,6 +57,11 @@ const OPTIONS = {
       return input || true; // FIXME
     },
   },
+  repositoriesInput: {
+    validate(input) {
+      return input || true; // FIXME
+    },
+  },
   dryRun: {
     validate(input) {
       return input === true || input === false;
